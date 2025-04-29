@@ -47,47 +47,47 @@ python3 content_delivery.py
 ### Amazon Books Dataset
 #### 1. Content exposure scenario
 **GRAPH-BASED RECOMMENDER SYSTEMS**
-<img src="images/books-graph-exposure.png">
+<img src="img/books-graph-exposure.png">
 **FACTORIZATION-BASED RECOMMENDER SYSTEMS**
-<img src="images/books-fact-exposure.png">
+<img src="img/books-fact-exposure.png">
 **NEIGHBORHOOD-BASED RECOMMENDER SYSTEMS**
-<img src="images/books-neigh-exposure.png">
+<img src="img/books-neigh-exposure.png">
 #### 2. Content delivery scenario
 **GRAPH-BASED RECOMMENDER SYSTEMS**
-<img src="images/books-graph-delivery.png">
+<img src="img/books-graph-delivery.png">
 **FACTORIZATION-BASED RECOMMENDER SYSTEMS**
-<img src="images/books-fact-delivery.png">
+<img src="img/books-fact-delivery.png">
 **NEIGHBORHOOD-BASED RECOMMENDER SYSTEMS**
-<img src="images/books-neigh-delivery.png">
+<img src="img/books-neigh-delivery.png">
 
 ### Movielens1M Dataset
 #### 1. Content exposure scenario
 **GRAPH-BASED RECOMMENDER SYSTEMS**
-<img src="images/ml1m-graph-exposure.png">
+<img src="img/ml1m-graph-exposure.png">
 **FACTORIZATION-BASED RECOMMENDER SYSTEMS**
-<img src="images/ml1m-fact-exposure.png">
+<img src="img/ml1m-fact-exposure.png">
 **NEIGHBORHOOD-BASED RECOMMENDER SYSTEMS**
-<img src="images/ml1m-neigh-exposure.png">
+<img src="img/ml1m-neigh-exposure.png">
 #### 2. Content delivery scenario
 **GRAPH-BASED RECOMMENDER SYSTEMS**
-<img src="images/ml1m-graph-delivery.png">
+<img src="img/ml1m-graph-delivery.png">
 **FACTORIZATION-BASED RECOMMENDER SYSTEMS**
-<img src="images/ml1m-fact-delivery.png">
+<img src="img/ml1m-fact-delivery.png">
 **NEIGHBORHOOD-BASED RECOMMENDER SYSTEMS**
-<img src="images/ml1m-neigh-delivery.png">
+<img src="img/ml1m-neigh-delivery.png">
 
 ### Amazon Music Dataset
 #### 1. Content exposure scenario
 **GRAPH-BASED RECOMMENDER SYSTEMS**
-<img src="images/music-graph-exposure.png">
+<img src="img/music-graph-exposure.png">
 **FACTORIZATION-BASED RECOMMENDER SYSTEMS**
-<img src="images/music-fact-exposure.png">
+<img src="img/music-fact-exposure.png">
 **NEIGHBORHOOD-BASED RECOMMENDER SYSTEMS**
-<img src="images/music-neigh-exposure.png">
+<img src="img/music-neigh-exposure.png">
 #### 2. Content delivery scenario
 **GRAPH-BASED RECOMMENDER SYSTEMS**
-<img src="images/music-graph-delivery.png">
+<img src="img/music-graph-delivery.png">
 **FACTORIZATION-BASED RECOMMENDER SYSTEMS**
-<img src="images/music-fact-delivery.png">
+<img src="img/music-fact-delivery.png">
 **NEIGHBORHOOD-BASED RECOMMENDER SYSTEMS**
-<img src="images/music-neigh-delivery.png">
+<img src="img/music-neigh-delivery.png">
