@@ -10,8 +10,9 @@ HP4MORec/
 ├── conf_files                  # The configuration files used to train the models using the Elliot framework.  
 ├── README.md                   # This file.
 ├── requirements.txt            # Python dependencies.
-├── requirements.txt            # File to run for the content exposure scenario.
-├── data/                       # File to run for the content delivery scenario.
+├── content exposure.txt        # File to run for the content exposure scenario.
+├── content delivery.txt        # File to run for the content delivery scenario.
+├── data                        # Models' performance.
 └── src/                        # Source code for the framework.
 ```
 
