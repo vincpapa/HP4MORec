@@ -1,3 +1,5 @@
+import itertools
+
 import numpy as np
 import pandas as pd
 import warnings
@@ -14,11 +16,12 @@ lookup_hp = {
 
 
 class ObjectivesSpace:
-    def __init__(self, df, functions, model_name):
+    def __init__(self, df, functions, model_name, norm):
         self.model_name = model_name
         self.functions = functions
         self.df = df[df.columns.intersection(self._constr_obj())]
         self.points = self._get_points()
+        self.norm = norm
 
     def _constr_obj(self):
         objectives = list(self.functions.keys())
@@ -107,15 +110,16 @@ class ObjectivesSpace:
                 distances[(i, tuple(point))] = min([self.point_to_segment_distance(point, x[0], x[1]) for x in line])
             except ValueError:
                 try:
-                    distances[(i, tuple(point))] = self.euclidean_distance(point, np.array(non_dom_line[0]))
+                    distances[(i, tuple(point))] = self.compute_norm(point, np.array(non_dom_line[0]), self.norm)
                 except ValueError:
                     pass
             i += 1
         return distances
 
 
-    @staticmethod
-    def point_to_segment_distance(P, A, B):
+    # @staticmethod
+    '''
+    def point_to_segment_distance(self, P, A, B):
         # Vector from A to B
         AB = B - A
         # Vector from A to P
@@ -127,12 +131,94 @@ class ObjectivesSpace:
         # Closest point on the segment
         closest_point = A + t * AB
         # Distance from P to the closest point on the segment
-        distance = np.linalg.norm(P - closest_point)
+        # distance = np.linalg.norm(P - closest_point)
+        distance = self.compute_norm(P, closest_point, self.norm)
         return distance
+    '''
 
-    def euclidean_distance(self, point1, point2):
+    def point_to_segment_distance(self, P, A, B):
+        """
+        Calculates the EXACT distance from point P to segment [A, B]
+        for L1, L2, and L-inf norms without numerical approximation.
+        """
+        AB = B - A
+        # Vector P - A
+        PA = P - A
+
+        # --- CASE 1: Euclidean (L2) ---
+        if self.norm == 2 or self.norm == 'l2':
+            denom = np.dot(AB, AB)
+            if denom == 0:  # A and B are the same point
+                return np.linalg.norm(PA)
+            t = np.dot(PA, AB) / denom
+            t = np.clip(t, 0, 1)
+            closest = A + t * AB
+            return np.linalg.norm(P - closest)
+
+        # --- CASE 2: Manhattan (L1) ---
+        elif self.norm == 1 or self.norm == 'l1':
+            # Candidates are 0, 1, and the 'kinks' where error in one dim is 0.
+            # Solve: PA[i] - t * AB[i] = 0  =>  t = PA[i] / AB[i]
+
+            # Avoid division by zero where AB is 0 (segment is flat in that dim)
+            with np.errstate(divide='ignore', invalid='ignore'):
+                t_candidates = PA / AB
+
+            # Filter valid candidates
+            valid_t = t_candidates[np.isfinite(t_candidates)]
+            valid_t = valid_t[(valid_t > 0) & (valid_t < 1)]
+
+            # Add boundaries
+            candidates = np.concatenate(([0.0, 1.0], valid_t))
+
+            # Evaluate distance at all candidates and take the min
+            min_dist = float('inf')
+            for t in candidates:
+                # Calculate L1 distance at this t
+                dist = np.sum(np.abs(PA - t * AB))
+                if dist < min_dist:
+                    min_dist = dist
+            return min_dist
+
+        # --- CASE 3: Chebyshev (L-Infinity) ---
+        elif self.norm == np.inf or self.norm == 'inf':
+            # Candidates are 0, 1, and intersections where |err_i| == |err_j|
+            candidates = [0.0, 1.0]
+            dims = len(P)
+
+            # We must check pairs of dimensions (i, j)
+            # Eq 1: (PA_i - t*AB_i) = (PA_j - t*AB_j)  => t(AB_j - AB_i) = PA_j - PA_i
+            # Eq 2: (PA_i - t*AB_i) = -(PA_j - t*AB_j) => t(AB_j + AB_i) = PA_j + PA_i
+
+            for i, j in itertools.combinations(range(dims), 2):
+                # Check Intersection 1
+                denom1 = AB[j] - AB[i]
+                if denom1 != 0:
+                    t1 = (PA[j] - PA[i]) / denom1
+                    if 0 < t1 < 1: candidates.append(t1)
+
+                # Check Intersection 2
+                denom2 = AB[j] + AB[i]
+                if denom2 != 0:
+                    t2 = (PA[j] + PA[i]) / denom2
+                    if 0 < t2 < 1: candidates.append(t2)
+
+            # Evaluate distance at all candidates
+            min_dist = float('inf')
+            for t in candidates:
+                # Calculate L-inf distance at this t
+                # dist = max(|PA - t*AB|)
+                dist = np.max(np.abs(PA - t * AB))
+                if dist < min_dist:
+                    min_dist = dist
+            return min_dist
+
+        else:
+            raise NotImplementedError("Only L1, L2, and L-inf supported exactly.")
+
+    def compute_norm(self, point1, point2, norm):
         # Compute the Euclidean distance
-        distance = np.linalg.norm(point1 - point2)
+        distance = np.linalg.norm(point1 - point2, ord=norm)
         return distance
 
     def order_points(self, points):
@@ -144,7 +230,7 @@ class ObjectivesSpace:
         while remaining_points:
             # Find the nearest neighbor to the last point in the ordered list
             last_point = ordered_points[-1]
-            nearest_point = min(remaining_points, key=lambda p: self.euclidean_distance(np.array(last_point), np.array(p)))
+            nearest_point = min(remaining_points, key=lambda p: self.compute_norm(np.array(last_point), np.array(p), self.norm))
             # Add the nearest point to the ordered list and remove it from remaining points
             ordered_points.append(nearest_point)
             remaining_points.remove(nearest_point)
@@ -201,7 +287,9 @@ class ObjectivesSpace:
             distances = self._get_distances(line_pts, all_pts)
         else:
             distances = self._get_distances(non_dom, pts)
+        # print(np.fromiter(distances.values(), dtype=float))
         return self.mean_std(distances)
+
 
     def get_statistics_per_hp(self, normalization=True):
         non_dom, dom = self.points[0][:, 1:].astype('float'), self.points[1][:, 1:].astype('float')
@@ -235,16 +323,60 @@ class ObjectivesSpace:
                             pts = dom_hp[hp][value].values[:, 1:4].astype('float')
                 if normalization:
                     line_pts, all_pts = self._minmax_normalization(pts, non_dom, np.concatenate((non_dom, dom)))
-                    try:
-                        distances = self._get_distances(line_pts, all_pts)
-                    except shapely.errors.GEOSException:
-                        return 'N.A', 'N.A'
+                    distances = self._get_distances(line_pts, all_pts)
                 else:
-                    try:
-                        distances = self._get_distances(non_dom, pts)
-                    except shapely.errors.GEOSException:
-                        return 'N.A', 'N.A'
+                    distances = self._get_distances(non_dom, pts)
                 stats_hp[hp][value] = self.mean_std(distances)
+        return stats_hp
+
+
+    def get_distances(self, normalization=True):
+        non_dom, dom = self.points[0][:, 1:].astype('float'), self.points[1][:, 1:].astype('float')
+        pts = np.concatenate((self.points[0][:, 1:].astype('float'), self.points[1][:, 1:].astype('float')))
+        if normalization:
+            line_pts, all_pts = self._minmax_normalization(pts, non_dom, np.concatenate((non_dom, dom)))
+            distances = self._get_distances(line_pts, all_pts)
+        else:
+            distances = self._get_distances(non_dom, pts)
+        return np.fromiter(distances.values(), dtype=float)
+
+
+    def get_distances_per_hp(self, normalization=True):
+        non_dom, dom = self.points[0][:, 1:].astype('float'), self.points[1][:, 1:].astype('float')
+        non_dom_hp, dom_hp = self.get_nondominated_per_hp(), self.get_dominated_per_hp()
+        hps = lookup_hp[self.model_name]
+        stats_hp = {}
+        for hp in hps:
+            stats_hp[hp] = {}
+            values = set()
+            for el in dom_hp[hp].keys():
+                values.add(el)
+            for el in non_dom_hp[hp].keys():
+                values.add(el)
+            for value in values:
+                try:
+                    if non_dom.shape[1] == 2:
+                        pts = np.concatenate((non_dom_hp[hp][value].values[:, 1:3].astype('float'), dom_hp[hp][value].values[:, 1:3].astype('float')))
+                    elif non_dom.shape[1] == 3:
+                        pts = np.concatenate((non_dom_hp[hp][value].values[:, 1:4].astype('float'),
+                                              dom_hp[hp][value].values[:, 1:4].astype('float')))
+                except KeyError:
+                    try:
+                        if non_dom.shape[1] == 2:
+                            pts = non_dom_hp[hp][value].values[:, 1:3].astype('float')
+                        elif non_dom.shape[1] == 3:
+                            pts = non_dom_hp[hp][value].values[:, 1:4].astype('float')
+                    except KeyError:
+                        if non_dom.shape[1] == 2:
+                            pts = dom_hp[hp][value].values[:, 1:3].astype('float')
+                        elif non_dom.shape[1] == 3:
+                            pts = dom_hp[hp][value].values[:, 1:4].astype('float')
+                if normalization:
+                    line_pts, all_pts = self._minmax_normalization(pts, non_dom, np.concatenate((non_dom, dom)))
+                    distances = self._get_distances(line_pts, all_pts)
+                else:
+                    distances = self._get_distances(non_dom, pts)
+                stats_hp[hp][value] = distances
         return stats_hp
 
 
